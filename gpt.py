@@ -69,12 +69,18 @@ def estimate_loss():
 class BigramLanguageModel(nn.Module):
   def __init__(self):
     super().__init__()
+    # embed the meaning
     self.token_embedding_table = nn.Embedding(vocab_size, n_embd)
+    #embed the position
+    self.position_embedding_table = nn.Embedding(block_size, n_embd)
     self.lm_head = nn.Linear(n_embd, vocab_size) #
 
   def forward(self, idx, targets=None):
+    B, T = idx.shape
     tok_embd = self.token_embedding_table(idx) # (batch, time, channel)
-    logits = self.lm_head(tok_embd) # (batch, time, vocab_size)
+    pos_embd = self.position_embedding_table(torch.arange(T, device=device))
+    x = tok_embd + pos_embd # (B, T, C)
+    logits = self.lm_head(x) # (batch, time, vocab_size)
     if targets is None:
       loss = None
     else:
@@ -101,7 +107,7 @@ class BigramLanguageModel(nn.Module):
     return idx
 
 # running model and getting the logits and loss
-model = BigramLanguageModel(vocab_size)
+model = BigramLanguageModel()
 m = model.to(device)
 
 """# Training the model"""
