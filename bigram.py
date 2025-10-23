@@ -8,6 +8,7 @@ from torch.nn import functional as F
 batch_size = 32
 block_size = 8
 max_iters = 3000
+eval_interval = 300
 learning_rate = 1e-2
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 eval_iters = 200
@@ -50,9 +51,9 @@ def get_batch(split):
   return x, y
 
 @torch.no_grad()
-def estimate_loss(model, x, y):
+def estimate_loss():
   out = {}
-  model.eval()
+  model.eval() # sets model to  eval mode
   for split in ['train', 'val']:
       losses = torch.zeros(eval_iters)
       for k in range(eval_iters):
@@ -60,7 +61,7 @@ def estimate_loss(model, x, y):
           logits, loss = model(X, Y)
           losses[k] = loss.item()
       out[split] = losses.mean()
-  model.train()
+  model.train() # sets model to train mode
   return out
 
 """Create bigram model"""
@@ -106,9 +107,9 @@ m = model.to(device)
 optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
 
 for iter in range(max_iters):
-    if iter % eval_iters == 0:
+    if iter % eval_interval == 0:
         losses = estimate_loss()
-        print(f"iter: {iter}: train loss: {losses['train']} | test loss: {losses['test']}")
+        print(f"iter: {iter}: train loss: {losses['train']:.4f} | val loss: {losses['val']:.4f}")
 
     #sample a batch of data
     xb, yb = get_batch('train')
@@ -127,6 +128,6 @@ print(
         m.generate(
             context,
             max_new_tokens=500
-            )[0].tolist()
-            )
+        )[0].tolist()
     )
+)
